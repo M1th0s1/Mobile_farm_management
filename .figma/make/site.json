@@ -1,0 +1,11 @@
+{
+  "title": "Mobile Farm Management",
+  "description": "Manage broiler chicken farm operations efficiently with a user-friendly dashboard that tracks batch phases, sales, and feed, designed for farmers in the field.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
