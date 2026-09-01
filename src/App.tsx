@@ -34,7 +34,7 @@ export default function App() {
 
   const enabled = isSupabaseConfigured && !authDisabled && !!session;
   const { batches, recordMortality } = useBatches(enabled);
-  const { customers, addCustomer } = useCustomers(enabled);
+  const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers(enabled);
   const { orders, addOrder, changeStatus, setPaid, updateOrder, deleteOrder } = useOrders(enabled);
   const { expenses, addExpense } = useExpenses(enabled);
 
@@ -101,7 +101,7 @@ export default function App() {
 
   // Sub-pages
   if (activePage === "turnusy")    return <>{<PageTurnusy batches={filteredBatches} salesByBatch={salesByBatch} onBack={goBack} />}{sharedNav}</>;
-  if (activePage === "zakaznici")  return <>{<PageZakaznici customers={customers} onAddCustomer={addCustomer} onBack={goBack} />}{sharedNav}</>;
+  if (activePage === "zakaznici")  return <>{<PageZakaznici customers={customers} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} onBack={goBack} />}{sharedNav}</>;
   if (activePage === "objednavky") return <>{<PageObjednavky customers={customers} orders={orders} onAdd={addOrder} onChangeStatus={changeStatus} onSetPaid={setPaid} onUpdate={updateOrder} onDelete={deleteOrder} onBack={goBack} />}{sharedNav}</>;
   if (activePage === "nakupy")     return <>{<PageNakupy onBack={goBack} expenses={expenses} />}{sharedNav}</>;
   if (activePage === "zabijacka")  return <>{<PageZabijacka onBack={goBack} />}{sharedNav}</>;

@@ -11,9 +11,16 @@ import type { Customer } from "@/types";
 
 const statusLabel: Record<string, string> = { confirmed: "Potvrdená", pending: "Čakajúca", delivered: "Doručená" };
 
-function CustomerDetail({ customer, onBack }: { customer: Customer; onBack: () => void }) {
+function CustomerDetail({ customer, onBack, onUpdate, onDelete }: {
+  customer: Customer;
+  onBack: () => void;
+  onUpdate: (c: Customer, d: { name: string; phone: string; status: string }) => void;
+  onDelete: (c: Customer) => void;
+}) {
   const history = customerHistory[customer.name] ?? [];
   const totalKs = history.reduce((s, h) => s + h.qty, 0);
+  const [showEdit, setShowEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <PageShell title={customer.name} icon={<UserIcon size={24} />} onBack={onBack}>
@@ -36,6 +43,18 @@ function CustomerDetail({ customer, onBack }: { customer: Customer; onBack: () =
               />
             </div>
           </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <button onClick={() => setShowEdit(true)} style={{
+            flex: 1, padding: "12px 0", borderRadius: radius.lg, border: `1.5px solid ${colors.dark}`,
+            background: colors.white, fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 12, color: colors.dark, cursor: "pointer",
+          }}>Upraviť</button>
+          <button onClick={() => setConfirmDelete(true)} style={{
+            flex: 1, padding: "12px 0", borderRadius: radius.lg, border: `1.5px solid #FCA5A5`,
+            background: "#FFF5F5", fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 12, color: "#B91C1C", cursor: "pointer",
+          }}>Zmazať</button>
         </div>
 
         {/* Stats */}
@@ -86,6 +105,32 @@ function CustomerDetail({ customer, onBack }: { customer: Customer; onBack: () =
           </div>
         )}
       </div>
+
+      {showEdit && (
+        <EditCustomerModal
+          customer={customer}
+          onClose={() => setShowEdit(false)}
+          onSave={d => { onUpdate(customer, d); setShowEdit(false); }}
+        />
+      )}
+
+      {confirmDelete && (
+        <BottomSheet
+          onClose={() => setConfirmDelete(false)}
+          overlayStyle={{ background: colors.overlay, zIndex: 60 }}
+          sheetStyle={{ padding: "20px 20px max(env(safe-area-inset-bottom, 24px), 24px)", boxShadow: shadows.modal }}
+          handleStyle={{ marginBottom: 16 }}
+        >
+          <div style={{ fontSize: 16, fontWeight: 900, color: colors.text, marginBottom: 8 }}>Zmazať zákazníka?</div>
+          <div style={{ fontSize: 13, fontWeight: 500, color: colors.dark, marginBottom: 20 }}>
+            Zákazník <strong>{customer.name}</strong> sa natrvalo odstráni. Jeho objednávky ostanú zachované.
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, padding: "14px", borderRadius: radius.xl, border: `1.5px solid ${colors.border}`, background: colors.white, fontFamily: typography.fontFamily, fontWeight: 700, fontSize: 13, color: colors.dark, cursor: "pointer" }}>Zrušiť</button>
+            <button onClick={() => onDelete(customer)} style={{ flex: 2, padding: "14px", borderRadius: radius.xl, border: "none", background: "#B91C1C", fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 13, color: colors.white, cursor: "pointer" }}>Áno, zmazať</button>
+          </div>
+        </BottomSheet>
+      )}
     </PageShell>
   );
 }
@@ -129,16 +174,95 @@ function AddCustomerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (c: 
   );
 }
 
-export default function PageZakaznici({ customers, onAddCustomer, onBack }: {
+const statusOptions = [
+  { key: "active", label: "Aktívny" },
+  { key: "pending", label: "Čaká" },
+  { key: "inactive", label: "Neaktívny" },
+];
+
+function EditCustomerModal({ customer, onClose, onSave }: {
+  customer: Customer;
+  onClose: () => void;
+  onSave: (data: { name: string; phone: string; status: string }) => void;
+}) {
+  const [name, setName] = useState(customer.name);
+  const [phone, setPhone] = useState(customer.phone);
+  const [status, setStatus] = useState(customer.status);
+
+  const submit = () => {
+    if (!name.trim()) return;
+    onSave({ name: name.trim(), phone: phone.trim() || "—", status });
+    onClose();
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", borderRadius: radius.lg,
+    border: `1.5px solid ${colors.border}`, background: colors.bg,
+    fontFamily: typography.fontFamily, fontSize: 13, fontWeight: 500, color: colors.text,
+    outline: "none", boxSizing: "border-box", marginBottom: 12,
+  };
+
+  return (
+    <BottomSheet
+      onClose={onClose}
+      overlayStyle={{ background: colors.overlay, zIndex: 60 }}
+      sheetStyle={{ padding: "20px 20px max(env(safe-area-inset-bottom, 24px), 24px)", boxShadow: shadows.modal }}
+      handleStyle={{ marginBottom: 16 }}
+    >
+      <div style={{ fontSize: 16, fontWeight: 900, color: colors.text, marginBottom: 20 }}>Upraviť zákazníka</div>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="Meno a priezvisko *" style={inputStyle} />
+      <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefónne číslo" style={{ ...inputStyle, marginBottom: 12 }} />
+      <div style={{ fontSize: 10, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Stav</div>
+      <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {statusOptions.map(s => {
+          const active = status === s.key;
+          return (
+            <button key={s.key} onClick={() => setStatus(s.key)} style={{
+              flex: 1, padding: "10px 6px", borderRadius: radius.lg, cursor: "pointer",
+              border: `1.5px solid ${active ? colors.dark : colors.border}`,
+              background: active ? colors.dark : colors.white,
+              fontFamily: typography.fontFamily, fontSize: 11, fontWeight: 800,
+              color: active ? colors.white : colors.dark,
+            }}>{s.label}</button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <button onClick={onClose} style={{ flex: 1, padding: "14px", borderRadius: radius.xl, border: `1.5px solid ${colors.border}`, background: colors.white, fontFamily: typography.fontFamily, fontWeight: 700, fontSize: 13, color: colors.dark, cursor: "pointer" }}>Zrušiť</button>
+        <button onClick={submit} style={{
+          flex: 2, padding: "14px", borderRadius: radius.xl, border: "none",
+          background: gradients.primary, fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 13, color: colors.white, cursor: "pointer",
+          opacity: name.trim() ? 1 : 0.5,
+        }}>Uložiť zmeny</button>
+      </div>
+    </BottomSheet>
+  );
+}
+
+export default function PageZakaznici({ customers, onAddCustomer, onUpdateCustomer, onDeleteCustomer, onBack }: {
   customers: Customer[];
   onAddCustomer: (c: Customer) => void;
+  onUpdateCustomer: (c: Customer, d: { name: string; phone: string; status: string }) => void;
+  onDeleteCustomer: (c: Customer) => void;
   onBack: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [showAdd, setShowAdd] = useState(false);
 
-  if (selected) return <CustomerDetail customer={selected} onBack={() => setSelected(null)} />;
+  const handleUpdate = (c: Customer, d: { name: string; phone: string; status: string }) => {
+    onUpdateCustomer(c, d);
+    setSelected(prev => {
+      if (!prev || prev.dbId !== c.dbId) return prev;
+      return { ...prev, name: d.name, phone: d.phone, status: d.status };
+    });
+  };
+  const handleDelete = (c: Customer) => {
+    onDeleteCustomer(c);
+    setSelected(null);
+  };
+
+  if (selected) return <CustomerDetail customer={selected} onBack={() => setSelected(null)} onUpdate={handleUpdate} onDelete={handleDelete} />;
 
   const filtered = customers.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 

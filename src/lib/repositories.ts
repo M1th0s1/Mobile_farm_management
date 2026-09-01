@@ -82,6 +82,18 @@ export async function insertCustomer(c: { name: string; phone: string; status: s
   if (error) throw error;
 }
 
+export async function updateCustomer(dbId: string, data: { name: string; phone: string; status: string }): Promise<void> {
+  const { error } = await supabase!.from("customers")
+    .update({ name: data.name, phone: data.phone, status: data.status })
+    .eq("id", dbId);
+  if (error) throw error;
+}
+
+export async function deleteCustomer(dbId: string): Promise<void> {
+  const { error } = await supabase!.from("customers").delete().eq("id", dbId);
+  if (error) throw error;
+}
+
 // ---------- EXPENSES ----------
 export async function fetchExpenses(): Promise<Expense[]> {
   const { data, error } = await supabase!.from("expenses").select("*").order("expense_date", { ascending: false });
@@ -121,7 +133,7 @@ export async function fetchOrders(): Promise<Order[]> {
     return {
       dbId: r.id,
       id: r.number,
-      customer: r.customers?.name ?? "",
+      customer: r.customers?.name ?? "—",
       items,
       productType,
       qty,
