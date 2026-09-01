@@ -129,7 +129,7 @@ export async function updateBatch(dbId: string, data: { count?: number; feed?: s
   if (data.count !== undefined) patch.current_count = data.count;
   if (data.feed !== undefined) patch.feed_type = data.feed;
   if (data.slaughterDate !== undefined) {
-    patch.slaughter_start = data.slaughterDate || null;
+    patch.slaughter_start = data.slaughterDate ? toIsoDate(data.slaughterDate) : null;
     patch.slaughter_end = null;
   }
   const { error } = await supabase!.from("batches").update(patch).eq("id", dbId);

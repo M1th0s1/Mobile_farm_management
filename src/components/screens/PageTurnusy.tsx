@@ -4,6 +4,7 @@ import CreateTurnusModal from "@/components/dashboard/CreateTurnusModal";
 import BatchDetail, { type BatchUpdate } from "@/components/dashboard/BatchDetail";
 import { ChickenLineIcon, SkullIcon } from "@/components/ui/Icons";
 import { batchPhaseGradient, colors, gradients, shadows, typography } from "@/theme/tokens";
+import { daysLeftLabel } from "@/utils/date";
 import type { Batch } from "@/types";
 
 export default function PageTurnusy({ batches, salesByBatch, onCreateTurnus, onEndTurnus, onUpdateTurnus, onDeleteTurnus, onMortality, onBack }: {
@@ -174,6 +175,15 @@ export default function PageTurnusy({ batches, salesByBatch, onCreateTurnus, onE
                     </div>
                   </div>
                 </div>
+
+                {(b.slaughterDate || b.slaughterRange) && (
+                  <div style={{ marginTop: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>Porážka: {b.slaughterDate || b.slaughterRange}</div>
+                    {daysLeftLabel(b.slaughterDate) && (
+                      <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>{daysLeftLabel(b.slaughterDate)}</div>
+                    )}
+                  </div>
+                )}
 
                 {/* Progress: ordered */}
                 <div style={{ position: "relative", zIndex: 2 }}>

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import BatchCard from "./BatchCard";
 import BatchDetail, { type BatchUpdate } from "./BatchDetail";
 import SalesCard from "./SalesCard";
@@ -51,11 +51,41 @@ export default function Dashboard(props: DashboardProps) {
 
   const [showCreate, setShowCreate] = useState(false);
   const [detailBatch, setDetailBatch] = useState<Batch | null>(null);
+  const [activeBatchIdx, setActiveBatchIdx] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeBatches = batches.filter(b => !b.endedAt);
   const currentBatch = activeBatches.length
-    ? activeBatches[Math.min(activeIdx, activeBatches.length - 1)]
+    ? activeBatches[Math.min(activeBatchIdx, activeBatches.length - 1)]
     : undefined;
+
+  useEffect(() => {
+    if (activeBatches.length > 0 && activeBatchIdx >= activeBatches.length) {
+      setActiveBatchIdx(activeBatches.length - 1);
+    }
+  }, [activeBatches.length, activeBatchIdx]);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const center = el.scrollLeft + el.clientWidth / 2;
+    let closest = 0, minDist = Infinity;
+    Array.from(el.children).forEach((child, i) => {
+      const c = child as HTMLElement;
+      const dist = Math.abs(c.offsetLeft + c.offsetWidth / 2 - center);
+      if (dist < minDist) { minDist = dist; closest = i; }
+    });
+    setActiveBatchIdx(closest);
+  };
+
+  const scrollTo = (idx: number) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const child = el.children[idx] as HTMLElement;
+    if (!child) return;
+    el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: "smooth" });
+    setActiveBatchIdx(idx);
+  };
 
   const filteredBatches = useMemo(() => filterBatches(activeBatches, dashFilter), [activeBatches, dashFilter]);
   const totalCount = useMemo(() => filteredBatches.reduce((s, b) => s + b.count, 0), [filteredBatches]);
@@ -130,18 +160,48 @@ export default function Dashboard(props: DashboardProps) {
         <button onClick={() => onNavigate("turnusy")} style={{ fontSize: 11, fontWeight: 600, color: colors.dark, background: "none", border: "none", cursor: "pointer", padding: 0, fontFamily: typography.fontFamily }}>Všetky turnusy →</button>
       </div>
 
-      {/* Single Active Batch Card */}
-      <div style={{ padding: "0 16px 18px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-        {currentBatch ? (
-          <BatchCard batch={currentBatch} isCenter={true} onClick={() => setDetailBatch(currentBatch)} />
-        ) : (
+      {/* Active Batch Carousel */}
+      {activeBatches.length === 0 ? (
+        <div style={{ padding: "0 16px 18px", display: "flex", justifyContent: "center" }}>
           <button onClick={() => setShowCreate(true)} style={{
             width: "100%", maxWidth: 390, padding: "22px", borderRadius: 22,
             border: `1.5px dashed ${colors.dark}`, background: colors.dark + "08",
             fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 14, color: colors.dark, cursor: "pointer",
-          }}>+ Vytvoriť prvý turnus</button>
-        )}
-      </div>
+          }}>+ Vytvoriť nový turnus</button>
+        </div>
+      ) : (
+        <>
+          <div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="carousel-snap scrollbar-hide"
+            style={{ display: "flex", gap: 14, overflowX: "auto", padding: "0 16px 4px", scrollSnapType: "x mandatory" }}
+          >
+            {activeBatches.map(b => (
+              <BatchCard
+                key={b.id}
+                batch={b}
+                isCenter={b.id === currentBatch?.id}
+                onClick={() => setDetailBatch(b)}
+              />
+            ))}
+          </div>
+          {activeBatches.length > 1 && (
+            <div style={{ display: "flex", justifyContent: "center", gap: 6, margin: "10px 0 6px" }}>
+              {activeBatches.map((b, i) => (
+                <button
+                  key={b.id}
+                  onClick={() => scrollTo(i)}
+                  style={{
+                    width: i === activeBatchIdx ? 20 : 6, height: 6, borderRadius: 3, border: "none", padding: 0,
+                    background: i === activeBatchIdx ? colors.dark : colors.border, cursor: "pointer", transition: "all 0.2s ease",
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Sales section */}
       <SalesCard
@@ -172,7 +232,7 @@ export default function Dashboard(props: DashboardProps) {
         )}
       </div>
 
-      <MenuDrawer open={menuOpen} activeIdx={activeIdx} onClose={() => onMenuOpenChange(false)} onNavigate={onNavigate} batches={batches} />
+      <MenuDrawer open={menuOpen} activeIdx={activeBatchIdx} onClose={() => onMenuOpenChange(false)} onNavigate={onNavigate} batches={batches} />
       <BottomNav
         menuOpen={menuOpen}
         setMenuOpen={onMenuOpenChange}

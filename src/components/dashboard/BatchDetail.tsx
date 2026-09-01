@@ -31,6 +31,7 @@ export default function BatchDetail({ batch, onClose, onUpdate, onMortality, onE
   const [mortality, setMortality] = useState("");
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const save = () => {
     onUpdate(batch, {
@@ -38,6 +39,8 @@ export default function BatchDetail({ batch, onClose, onUpdate, onMortality, onE
       feed,
       slaughterDate: slaughterDate ? toAppDate(slaughterDate) : undefined,
     });
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2000);
   };
 
   const submitMortality = () => {
@@ -133,6 +136,12 @@ export default function BatchDetail({ batch, onClose, onUpdate, onMortality, onE
           }}>Zmazať turnus</button>
         </div>
       </div>
+
+      {saved && (
+        <div style={{ position: "fixed", bottom: 30, left: "50%", transform: "translateX(-50%)", background: "#14532D", color: "#FFFFFF", padding: "10px 18px", borderRadius: 12, fontSize: 12, fontWeight: 700, zIndex: 100, boxShadow: "0 8px 24px rgba(0,0,0,0.25)", display: "flex", alignItems: "center", gap: 6 }}>
+          ✓ Zmeny uložené
+        </div>
+      )}
 
       {confirmEnd && (
         <BottomSheet onClose={() => setConfirmEnd(false)} overlayStyle={{ background: colors.overlay, zIndex: 95 }} sheetStyle={{ padding: "20px 20px max(env(safe-area-inset-bottom, 24px), 24px)", boxShadow: shadows.modal }} handleStyle={{ marginBottom: 16 }}>

@@ -55,3 +55,24 @@ export function filterLabel(f: SalesFilter): string {
   if (f.type === "range") return `${f.from} – ${f.to}`;
   return "";
 }
+
+/** Počet dní od dnes do dátumu (DD.MM.RRRR). null = neplatný dátum */
+export function daysUntil(dateStr?: string): number | null {
+  if (!dateStr) return null;
+  const [d, m, y] = dateStr.split(".");
+  const dt = new Date(Number(y), Number(m) - 1, Number(d));
+  if (isNaN(dt.getTime())) return null;
+  dt.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((dt.getTime() - today.getTime()) / 86400000);
+}
+
+/** Text „Ostáva: X dní" / „Dnes" / „Prebehla" podľa dátumu */
+export function daysLeftLabel(dateStr?: string): string | null {
+  const days = daysUntil(dateStr);
+  if (days === null) return null;
+  if (days > 0) return `Ostáva: ${days} dní`;
+  if (days === 0) return "Dnes";
+  return "Prebehla";
+}

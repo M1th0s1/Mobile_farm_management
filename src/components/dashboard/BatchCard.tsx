@@ -1,4 +1,5 @@
 import { batchPhaseGradient, colors } from "@/theme/tokens";
+import { daysLeftLabel } from "@/utils/date";
 import { ChickenLineIcon, SkullIcon } from "@/components/ui/Icons";
 import type { Batch } from "@/types";
 
@@ -19,6 +20,7 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
   };
 
   const { title, location } = parseBatchId(batch.id);
+  const slaughterLabel = daysLeftLabel(batch.slaughterDate);
 
   // Gradient tones preserving the farm dark green / emerald brand palette
   const cardGradient = batchPhaseGradient(batch.phase);
@@ -267,6 +269,20 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
           </div>
         </div>
       </div>
+
+      {/* Planned slaughter – pod riadkom, s odstupom od dní */}
+      {(batch.slaughterDate || batch.slaughterRange) && (
+        <div style={{ marginTop: 18, textAlign: "center" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>
+            Porážka: {batch.slaughterDate || batch.slaughterRange}
+          </div>
+          {slaughterLabel && (
+            <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.65)", marginTop: 4 }}>
+              {slaughterLabel}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
