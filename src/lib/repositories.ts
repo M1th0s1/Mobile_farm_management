@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Batch, Customer, Expense, Order, OrderItem, OrderStatus } from "@/types";
+import type { Batch, Customer, Expense, MortalityRecord, Order, OrderItem, OrderStatus } from "@/types";
 
 const PHASE_LABELS: Record<string, string> = { starter: "Štartér", growth: "Rast", slaughter: "Porážka" };
 const PRODUCT_LABELS: Record<string, string> = { cele: "Celé kura", porcie: "Naporcované kura", prsia: "Len prsia" };
@@ -47,8 +47,12 @@ export async function fetchBatches(): Promise<Batch[]> {
       mortality: r.mortality,
       purchaseDate: toAppDate(r.started_at),
       slaughterRange: r.slaughter_start
-        ? `${toAppDate(r.slaughter_start)} – ${toAppDate(r.slaughter_end)}`
+        ? (r.slaughter_end && r.slaughter_end !== r.slaughter_start
+            ? `${toAppDate(r.slaughter_start)} – ${toAppDate(r.slaughter_end)}`
+            : toAppDate(r.slaughter_start))
         : undefined,
+      slaughterDate: toAppDate(r.slaughter_start),
+      endedAt: toAppDate(r.ended_at),
       sales: salesMap.get(r.id) ?? { ordered: 0, toSell: r.current_count },
     };
   });
@@ -56,6 +60,85 @@ export async function fetchBatches(): Promise<Batch[]> {
 
 export async function recordMortality(dbId: string, count: number): Promise<void> {
   const { error } = await supabase!.rpc("record_mortality", { p_batch_id: dbId, p_count: count });
+  if (error) throw error;
+}
+
+export async function fetchMortalities(): Promise<MortalityRecord[]> {
+  const { data, error } = await supabase!
+    .from("mortalities")
+    .select("*, batches(code)")
+    .order("recorded_at", { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    dbId: r.id,
+    batchId: r.batch_id,
+    batchCode: r.batches?.code ?? "",
+    recordedAt: toAppDate(r.recorded_at) ?? "",
+    count: r.count,
+  }));
+}
+
+export async function fetchHalls(): Promise<{ name: string; capacity: number }[]> {
+  const { data, error } = await supabase!.from("halls").select("name, capacity").order("name");
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({ name: r.name, capacity: r.capacity }));
+}
+
+/** Vytvorí nový turnus (fáza starter) s automatickým kódom NN/YYYY */
+export async function createBatch(data: { count: number; startedAt: string; hallName?: string; feed?: string }): Promise<void> {
+  const year = new Date().getFullYear().toString();
+  const { data: existing, error: qErr } = await supabase!
+    .from("batches")
+    .select("code")
+    .ilike("code", `%/${year}`);
+  if (qErr) throw qErr;
+  const nums = (existing ?? [])
+    .map((r: any) => parseInt(String(r.code).split("/")[0]))
+    .filter(n => !isNaN(n));
+  const code = `${(Math.max(0, ...nums) + 1).toString().padStart(2, "0")}/${year}`;
+
+  let hallId: string | null = null;
+  if (data.hallName) {
+    const { data: hall } = await supabase!.from("halls").select("id").eq("name", data.hallName).maybeSingle();
+    hallId = hall?.id ?? null;
+  }
+
+  const { error } = await supabase!.from("batches").insert({
+    code,
+    phase: "starter",
+    feed_type: data.feed ?? "",
+    initial_count: data.count,
+    current_count: data.count,
+    mortality: 0,
+    started_at: data.startedAt,
+  });
+  if (error) throw error;
+}
+
+/** Ukončí turnus (ended_at = dnes) */
+export async function endBatch(dbId: string): Promise<void> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase!.from("batches").update({ ended_at: today }).eq("id", dbId);
+  if (error) throw error;
+}
+
+/** Upraví turnus (počet, krmivo, plánovaná porážka) */
+export async function updateBatch(dbId: string, data: { count?: number; feed?: string; slaughterDate?: string }): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (data.count !== undefined) patch.current_count = data.count;
+  if (data.feed !== undefined) patch.feed_type = data.feed;
+  if (data.slaughterDate !== undefined) {
+    patch.slaughter_start = data.slaughterDate || null;
+    patch.slaughter_end = null;
+  }
+  const { error } = await supabase!.from("batches").update(patch).eq("id", dbId);
+  if (error) throw error;
+}
+
+/** Zmaže turnus (objednávky sa odpoja cez set null, úhyny/porážky cascade) */
+export async function deleteBatch(dbId: string): Promise<void> {
+  const { error } = await supabase!.from("batches").delete().eq("id", dbId);
   if (error) throw error;
 }
 

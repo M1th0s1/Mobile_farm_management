@@ -1,13 +1,23 @@
+import { useState } from "react";
 import PageShell from "@/components/ui/PageShell";
+import CreateTurnusModal from "@/components/dashboard/CreateTurnusModal";
+import BatchDetail, { type BatchUpdate } from "@/components/dashboard/BatchDetail";
 import { ChickenLineIcon, SkullIcon } from "@/components/ui/Icons";
-import { batchPhaseGradient, colors, gradients, shadows } from "@/theme/tokens";
+import { batchPhaseGradient, colors, gradients, shadows, typography } from "@/theme/tokens";
 import type { Batch } from "@/types";
 
-export default function PageTurnusy({ batches, salesByBatch, onBack }: {
+export default function PageTurnusy({ batches, salesByBatch, onCreateTurnus, onEndTurnus, onUpdateTurnus, onDeleteTurnus, onMortality, onBack }: {
   batches: Batch[];
   salesByBatch?: Record<string, { ordered: number; toSell: number }>;
+  onCreateTurnus: (data: { count: number; startedAt: string; hallName?: string; feed?: string }) => void;
+  onEndTurnus: (b: Batch) => void;
+  onUpdateTurnus: (b: Batch, data: BatchUpdate) => void;
+  onDeleteTurnus: (b: Batch) => void;
+  onMortality: (b: Batch, count: number) => void;
   onBack: () => void;
 }) {
+  const [showCreate, setShowCreate] = useState(false);
+  const [detailBatch, setDetailBatch] = useState<Batch | null>(null);
   const totalCount = batches.reduce((s, b) => s + b.count, 0);
   const totalMortality = batches.reduce((s, b) => s + b.mortality, 0);
 
@@ -27,6 +37,12 @@ export default function PageTurnusy({ batches, salesByBatch, onBack }: {
             </div>
           ))}
         </div>
+
+        <button onClick={() => setShowCreate(true)} style={{
+          width: "100%", padding: "14px", borderRadius: 14, border: "none",
+          background: gradients.primary, fontFamily: typography.fontFamily,
+          fontWeight: 800, fontSize: 13, color: colors.white, cursor: "pointer", marginBottom: 16,
+        }}>+ Nový turnus</button>
 
         {/* Batch cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -50,12 +66,13 @@ export default function PageTurnusy({ batches, salesByBatch, onBack }: {
             const cardGradient = batchPhaseGradient(b.phase);
 
             return (
-              <div key={b.id} style={{
+              <div key={b.id} onClick={() => setDetailBatch(b)} style={{
                 background: cardGradient,
                 borderRadius: 22, padding: "20px",
                 position: "relative", overflow: "hidden",
                 border: "1px solid rgba(255, 255, 255, 0.16)",
                 boxShadow: shadows.cardBatch,
+                cursor: "pointer",
               }}>
                 {/* Background Watermark */}
                 <svg
@@ -168,11 +185,32 @@ export default function PageTurnusy({ batches, salesByBatch, onBack }: {
                     <div style={{ height: "100%", width: `${orderedPct}%`, background: colors.white, borderRadius: 3, opacity: 0.9 }} />
                   </div>
                 </div>
+
+                {/* Footer: status */}
+                <div style={{ position: "relative", zIndex: 2, marginTop: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  {b.endedAt && (
+                    <span style={{ fontSize: 10, fontWeight: 800, color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 0.6 }}>
+                      ✓ Ukončený {b.endedAt}
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {showCreate && <CreateTurnusModal onClose={() => setShowCreate(false)} onCreate={onCreateTurnus} />}
+      {detailBatch && (
+        <BatchDetail
+          batch={detailBatch}
+          onClose={() => setDetailBatch(null)}
+          onUpdate={onUpdateTurnus}
+          onMortality={onMortality}
+          onEnd={onEndTurnus}
+          onDelete={onDeleteTurnus}
+        />
+      )}
     </PageShell>
   );
 }

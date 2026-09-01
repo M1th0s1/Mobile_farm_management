@@ -1,18 +1,21 @@
-import { useMemo } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import BatchCard from "./BatchCard";
+import BatchDetail, { type BatchUpdate } from "./BatchDetail";
 import SalesCard from "./SalesCard";
 import SalesFilterSheet from "./SalesFilterSheet";
 import UhynModal from "./UhynModal";
 import VydavokModal from "./VydavokModal";
 import BottomNav from "./BottomNav";
 import MenuDrawer from "./MenuDrawer";
+import CreateTurnusModal from "./CreateTurnusModal";
 import { CheckIcon, CloseIcon, EuroIcon, FilterIcon } from "@/components/ui/Icons";
 import { batchPhaseGradient, colors, shadows, typography } from "@/theme/tokens";
-import { filterBatches, filterLabel } from "@/utils/date";
-import type { Batch, Expense, Order, SalesFilter } from "@/types";
+import { filterBatches, filterLabel, parseDate } from "@/utils/date";
+import type { Batch, Expense, MortalityRecord, Order, SalesFilter } from "@/types";
 
 type DashboardProps = {
   batches: Batch[];
+  mortalities: MortalityRecord[];
   orders: Order[];
   expenses: Expense[];
   activeIdx: number;
@@ -24,6 +27,11 @@ type DashboardProps = {
   showVydavok: boolean;
   onUhyn: (batchIdx: number, count: number) => void;
   onVydavok: (e: Expense) => void;
+  onCreateTurnus: (data: { count: number; startedAt: string; hallName?: string; feed?: string }) => void;
+  onEndTurnus: (b: Batch) => void;
+  onUpdateTurnus: (b: Batch, data: BatchUpdate) => void;
+  onDeleteTurnus: (b: Batch) => void;
+  onMortality: (b: Batch, count: number) => void;
   onMenuOpenChange: (v: boolean) => void;
   onShowUhyn: (v: boolean) => void;
   onShowVydavok: (v: boolean) => void;
@@ -34,13 +42,22 @@ type DashboardProps = {
 
 export default function Dashboard(props: DashboardProps) {
   const {
-    batches, orders, expenses, activeIdx, menuOpen, dashFilter, allDashYears,
+    batches, mortalities, orders, expenses, activeIdx, menuOpen, dashFilter, allDashYears,
     showDashFilter, showUhyn, showVydavok,
-    onUhyn, onVydavok, onMenuOpenChange,
+    onUhyn, onVydavok, onCreateTurnus, onEndTurnus, onUpdateTurnus, onDeleteTurnus, onMortality,
+    onMenuOpenChange,
     onShowUhyn, onShowVydavok, onShowDashFilter, onApplyFilter, onNavigate,
   } = props;
 
-  const filteredBatches = useMemo(() => filterBatches(batches, dashFilter), [batches, dashFilter]);
+  const [showCreate, setShowCreate] = useState(false);
+  const [detailBatch, setDetailBatch] = useState<Batch | null>(null);
+
+  const activeBatches = batches.filter(b => !b.endedAt);
+  const currentBatch = activeBatches.length
+    ? activeBatches[Math.min(activeIdx, activeBatches.length - 1)]
+    : undefined;
+
+  const filteredBatches = useMemo(() => filterBatches(activeBatches, dashFilter), [activeBatches, dashFilter]);
   const totalCount = useMemo(() => filteredBatches.reduce((s, b) => s + b.count, 0), [filteredBatches]);
   const totalMortality = useMemo(() => filteredBatches.reduce((s, b) => s + b.mortality, 0), [filteredBatches]);
 
@@ -50,11 +67,22 @@ export default function Dashboard(props: DashboardProps) {
     { label: "Úhyny celkom", val: String(totalMortality), unit: "ks", dark: true },
   ];
 
-  const recentEvents = [
-    { time: "08:30", type: "Úhyn",    desc: "Turnus 02/2026 — 3 ks",         color: colors.dark,    bg: colors.dark + "18",   icon: <CloseIcon size={14} color={colors.dark} /> },
-    { time: "07:15", type: "Výdavok", desc: "Krmivo BR2 — 85 kg · 42,50 €",  color: colors.dark,    bg: colors.dark + "12",   icon: <EuroIcon size={18} color={colors.dark} /> },
-    { time: "Včera", type: "Zákazník", desc: "Novák M. — 50 ks objednávka",  color: colors.dark,    bg: colors.accent + "20", icon: <CheckIcon size={13} color={colors.dark} /> },
-  ];
+  const recentEvents = useMemo(() => {
+    const list: { date: Date; label: string; type: string; desc: string; color: string; bg: string; icon: ReactNode }[] = [];
+    mortalities.forEach(m => {
+      const d = parseDate(m.recordedAt);
+      if (d) list.push({ date: d, label: m.recordedAt.slice(0, 5), type: "Úhyn", desc: `Turnus ${m.batchCode} — ${m.count} ks`, color: colors.dark, bg: colors.dark + "18", icon: <CloseIcon size={14} color={colors.dark} /> });
+    });
+    expenses.forEach(e => {
+      const d = parseDate(e.date);
+      if (d) list.push({ date: d, label: e.date.slice(0, 5), type: "Výdavok", desc: `${e.name} · ${e.amount.toFixed(2)} €`, color: colors.dark, bg: colors.dark + "12", icon: <EuroIcon size={18} color={colors.dark} /> });
+    });
+    orders.forEach(o => {
+      const d = parseDate(o.date);
+      if (d) list.push({ date: d, label: o.date.slice(0, 5), type: "Zákazník", desc: `${o.customer} — ${o.qty} ks objednávka`, color: colors.dark, bg: colors.accent + "20", icon: <CheckIcon size={13} color={colors.dark} /> });
+    });
+    return list.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
+  }, [mortalities, expenses, orders]);
 
   return (
     <div style={{ minHeight: "100svh", background: colors.white, display: "flex", flexDirection: "column", maxWidth: 430, margin: "0 auto", position: "relative", fontFamily: typography.fontFamily }}>
@@ -103,8 +131,16 @@ export default function Dashboard(props: DashboardProps) {
       </div>
 
       {/* Single Active Batch Card */}
-      <div style={{ padding: "0 16px 18px", display: "flex", justifyContent: "center" }}>
-        {batches[activeIdx] && <BatchCard batch={batches[activeIdx]} isCenter={true} />}
+      <div style={{ padding: "0 16px 18px", display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+        {currentBatch ? (
+          <BatchCard batch={currentBatch} isCenter={true} onClick={() => setDetailBatch(currentBatch)} />
+        ) : (
+          <button onClick={() => setShowCreate(true)} style={{
+            width: "100%", maxWidth: 390, padding: "22px", borderRadius: 22,
+            border: `1.5px dashed ${colors.dark}`, background: colors.dark + "08",
+            fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 14, color: colors.dark, cursor: "pointer",
+          }}>+ Vytvoriť prvý turnus</button>
+        )}
       </div>
 
       {/* Sales section */}
@@ -112,24 +148,28 @@ export default function Dashboard(props: DashboardProps) {
         orders={orders}
         expenses={expenses}
         filter={dashFilter}
-        headerGradient={batches[activeIdx] ? batchPhaseGradient(batches[activeIdx].phase) : undefined}
+        headerGradient={currentBatch ? batchPhaseGradient(currentBatch.phase) : undefined}
       />
 
       {/* Recent events */}
       <div style={{ margin: "0 16px 110px" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: colors.text, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Posledné záznamy</div>
-        {recentEvents.map((e, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < 2 ? `1px solid ${colors.border}` : "none" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: e.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: e.color, flexShrink: 0, border: `1px solid ${e.color}25` }}>
-              {e.icon}
+        {recentEvents.length === 0 ? (
+          <div style={{ textAlign: "center", fontSize: 12, color: colors.dark, opacity: 0.5, padding: "16px 0" }}>Zatiaľ žiadne záznamy</div>
+        ) : (
+          recentEvents.map((e, i) => (
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: i < 2 ? `1px solid ${colors.border}` : "none" }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: e.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: e.color, flexShrink: 0, border: `1px solid ${e.color}25` }}>
+                {e.icon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: colors.text }}>{e.type}</div>
+                <div style={{ fontSize: 11, fontWeight: 500, color: colors.dark, marginTop: 1 }}>{e.desc}</div>
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: colors.dark }}>{e.label}</div>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: colors.text }}>{e.type}</div>
-              <div style={{ fontSize: 11, fontWeight: 500, color: colors.dark, marginTop: 1 }}>{e.desc}</div>
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: colors.dark }}>{e.time}</div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <MenuDrawer open={menuOpen} activeIdx={activeIdx} onClose={() => onMenuOpenChange(false)} onNavigate={onNavigate} batches={batches} />
@@ -138,11 +178,22 @@ export default function Dashboard(props: DashboardProps) {
         setMenuOpen={onMenuOpenChange}
         onUhyn={() => onShowUhyn(true)}
         onVydavok={() => onShowVydavok(true)}
-        gradient={batches[activeIdx] ? batchPhaseGradient(batches[activeIdx].phase) : undefined}
+        gradient={currentBatch ? batchPhaseGradient(currentBatch.phase) : undefined}
       />
       {showUhyn && <UhynModal batches={batches} onClose={() => onShowUhyn(false)} onSubmit={onUhyn} />}
       {showVydavok && <VydavokModal onClose={() => onShowVydavok(false)} onSubmit={onVydavok} />}
       {showDashFilter && <SalesFilterSheet filter={dashFilter} allYears={allDashYears} onApply={f => onApplyFilter(f)} onClose={() => onShowDashFilter(false)} />}
+      {showCreate && <CreateTurnusModal onClose={() => setShowCreate(false)} onCreate={onCreateTurnus} />}
+      {detailBatch && (
+        <BatchDetail
+          batch={detailBatch}
+          onClose={() => setDetailBatch(null)}
+          onUpdate={onUpdateTurnus}
+          onMortality={onMortality}
+          onEnd={onEndTurnus}
+          onDelete={onDeleteTurnus}
+        />
+      )}
     </div>
   );
 }

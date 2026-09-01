@@ -16,6 +16,8 @@ export type Batch = {
   mortality: number;
   purchaseDate?: string;
   slaughterRange?: string;
+  slaughterDate?: string;
+  endedAt?: string;
   sales?: { ordered: number; toSell: number };
 };
 
@@ -69,6 +71,15 @@ export type CustomerHistoryEntry = {
 };
 
 export type CustomerHistory = Record<string, CustomerHistoryEntry[]>;
+
+/** Záznam úhynu (audit) */
+export type MortalityRecord = {
+  dbId: string;
+  batchId: string;
+  batchCode: string;
+  recordedAt: string; // DD.MM.RRRR
+  count: number;
+};
 
 /** Filter pre tržby na dashboarde */
 export type SalesFilter =

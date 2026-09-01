@@ -2,7 +2,7 @@ import { batchPhaseGradient, colors } from "@/theme/tokens";
 import { ChickenLineIcon, SkullIcon } from "@/components/ui/Icons";
 import type { Batch } from "@/types";
 
-export default function BatchCard({ batch, isCenter }: { batch: Batch; isCenter: boolean }) {
+export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; isCenter: boolean; onClick?: () => void }) {
   const phaseOrder = batch.phase === "starter" ? 0 : batch.phase === "growth" ? 1 : 2;
   const phases = [0, 1, 2];
 
@@ -26,9 +26,11 @@ export default function BatchCard({ batch, isCenter }: { batch: Batch; isCenter:
   return (
     <div
       className="carousel-item flex-shrink-0"
+      onClick={onClick}
       style={{
         width: "calc(100vw - 40px)",
         maxWidth: 390,
+        cursor: onClick ? "pointer" : undefined,
         borderRadius: 24,
         padding: "20px 20px 20px",
         position: "relative",

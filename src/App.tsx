@@ -19,7 +19,7 @@ import { useBatches } from "@/hooks/useBatches";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useOrders } from "@/hooks/useOrders";
 import { useExpenses } from "@/hooks/useExpenses";
-import type { Expense, SalesFilter } from "@/types";
+import type { Batch, Expense, SalesFilter } from "@/types";
 
 export default function App() {
   const [activeIdx, setActiveIdx] = useState(1);
@@ -33,7 +33,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
 
   const enabled = isSupabaseConfigured && !authDisabled && !!session;
-  const { batches, recordMortality } = useBatches(enabled);
+  const { batches, mortalities, recordMortality, createBatch, endBatch, updateBatch, deleteBatch } = useBatches(enabled);
   const { customers, addCustomer, updateCustomer, deleteCustomer } = useCustomers(enabled);
   const { orders, addOrder, changeStatus, setPaid, updateOrder, deleteOrder } = useOrders(enabled);
   const { expenses, addExpense } = useExpenses(enabled);
@@ -76,6 +76,9 @@ export default function App() {
     if (b) recordMortality(b.id, count);
   };
   const handleVydavok = (e: Expense) => addExpense(e);
+  const handleMortality = (b: Batch, count: number) => recordMortality(b.id, count);
+  const handleUpdateTurnus = (b: Batch, data: { count?: number; feed?: string; slaughterDate?: string }) => updateBatch(b.id, data);
+  const handleDeleteTurnus = (b: Batch) => deleteBatch(b.id);
   const goBack = () => setActivePage(null);
 
   const handleLogout = async () => {
@@ -100,7 +103,7 @@ export default function App() {
   );
 
   // Sub-pages
-  if (activePage === "turnusy")    return <>{<PageTurnusy batches={filteredBatches} salesByBatch={salesByBatch} onBack={goBack} />}{sharedNav}</>;
+  if (activePage === "turnusy")    return <>{<PageTurnusy batches={filteredBatches} salesByBatch={salesByBatch} onCreateTurnus={createBatch} onEndTurnus={b => endBatch(b.id)} onUpdateTurnus={handleUpdateTurnus} onDeleteTurnus={handleDeleteTurnus} onMortality={handleMortality} onBack={goBack} />}{sharedNav}</>;
   if (activePage === "zakaznici")  return <>{<PageZakaznici customers={customers} onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer} onBack={goBack} />}{sharedNav}</>;
   if (activePage === "objednavky") return <>{<PageObjednavky customers={customers} orders={orders} onAdd={addOrder} onChangeStatus={changeStatus} onSetPaid={setPaid} onUpdate={updateOrder} onDelete={deleteOrder} onBack={goBack} />}{sharedNav}</>;
   if (activePage === "nakupy")     return <>{<PageNakupy onBack={goBack} expenses={expenses} />}{sharedNav}</>;
@@ -111,6 +114,7 @@ export default function App() {
   return (
     <Dashboard
       batches={batches}
+      mortalities={mortalities}
       orders={orders}
       expenses={expenses}
       activeIdx={activeIdx}
@@ -122,6 +126,11 @@ export default function App() {
       showVydavok={showVydavok}
       onUhyn={handleUhyn}
       onVydavok={handleVydavok}
+      onCreateTurnus={createBatch}
+      onEndTurnus={b => endBatch(b.id)}
+      onUpdateTurnus={handleUpdateTurnus}
+      onDeleteTurnus={handleDeleteTurnus}
+      onMortality={handleMortality}
       onMenuOpenChange={setMenuOpen}
       onShowUhyn={setShowUhyn}
       onShowVydavok={setShowVydavok}
