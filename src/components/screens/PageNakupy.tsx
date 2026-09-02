@@ -3,13 +3,16 @@ import PageShell from "@/components/ui/PageShell";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import SalesFilterSheet from "@/components/dashboard/SalesFilterSheet";
-import { expenseIcons, FilterIcon, MoneyIcon, ShoppingBagIcon } from "@/components/ui/Icons";
+import {
+  ChickenLineIcon, expenseIcons, FeedIcon, FilterIcon, MedicationIcon, MoneyIcon, PackageIcon, ShoppingBagIcon, ToolIcon,
+} from "@/components/ui/Icons";
 import { colors, gradients, typography } from "@/theme/tokens";
 import { purchases } from "@/data/mockData";
 import { filterByPeriod, filterLabel } from "@/utils/date";
 import type { Expense, SalesFilter } from "@/types";
 
 const catLabel: Record<string, string> = { krmivo: "Krmivo", lek: "Lieky", material: "Materiál", kurcata: "Kurčatá", ine: "Iné" };
+const catIcon = { krmivo: FeedIcon, lek: MedicationIcon, material: ToolIcon, kurcata: ChickenLineIcon, ine: PackageIcon } as const;
 
 export default function PageNakupy({ onBack, expenses: livePurchases }: { onBack: () => void; expenses?: Expense[] }) {
   const [tab, setTab] = useState("all");
@@ -39,18 +42,31 @@ export default function PageNakupy({ onBack, expenses: livePurchases }: { onBack
 
         {/* Filter chips */}
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-          {(["all", "krmivo", "lek", "material", "kurcata", "ine"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              flex: 1, padding: "8px 4px", borderRadius: 12, border: "none", cursor: "pointer",
-              fontFamily: typography.fontFamily, fontSize: 10, fontWeight: 700,
-              background: tab === t ? colors.dark : colors.white,
-              color: tab === t ? colors.white : colors.dark,
-              transition: "all 0.15s ease",
-            }}>
-              {t === "all" ? "Všetko" : expenseIcons[t]}
-              {" "}{t === "all" ? "" : catLabel[t] ?? "Iné"}
-            </button>
-          ))}
+          {(["all", "krmivo", "lek", "material", "kurcata", "ine"] as const).map(t => {
+            const active = tab === t;
+            return (
+              <button key={t} onClick={() => setTab(t)} style={{
+                flex: 1, padding: "9px 2px", borderRadius: 12, border: "none", cursor: "pointer",
+                fontFamily: typography.fontFamily, fontSize: 9, fontWeight: 800, letterSpacing: 0.2,
+                background: active ? colors.dark : colors.white,
+                color: active ? colors.white : colors.dark,
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 5,
+                transition: "all 0.15s ease",
+              }}>
+                {t === "all" ? (
+                  <span style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 24 }}>Všetko</span>
+                ) : (
+                  <>
+                    {(() => {
+                      const Icon = catIcon[t as keyof typeof catIcon];
+                      return <Icon size={19} color={active ? "#FFFFFF" : colors.dark} />;
+                    })()}
+                    <span>{catLabel[t]}</span>
+                  </>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Total */}

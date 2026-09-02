@@ -16,6 +16,7 @@ import LoginScreen from "@/components/auth/LoginScreen";
 import { batchPhaseGradient, colors } from "@/theme/tokens";
 import { filterBatches } from "@/utils/date";
 import { authDisabled, isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { fetchHalls } from "@/lib/repositories";
 import { useBatches } from "@/hooks/useBatches";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useOrders } from "@/hooks/useOrders";
@@ -32,6 +33,7 @@ export default function App() {
   const [showVydavok, setShowVydavok] = useState(false);
   const [showDashFilter, setShowDashFilter] = useState(false);
   const [dashFilter, setDashFilter] = useState<SalesFilter>({ type: "year", year: "2026" });
+  const [halls, setHalls] = useState<{ name: string; capacity: number }[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
 
@@ -51,6 +53,12 @@ export default function App() {
     const { data: sub } = supabase!.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => { sub.subscription.unsubscribe(); };
   }, []);
+
+  // Kapacity hál pre štatistiky
+  useEffect(() => {
+    if (!enabled) { setHalls([]); return; }
+    fetchHalls().then(setHalls).catch(err => console.error("fetchHalls:", err));
+  }, [enabled]);
 
   // „Späť" prehliadača / Android hardvérové tlačidlo – ostaneme v apke
   useEffect(() => {
@@ -141,7 +149,18 @@ export default function App() {
   ) : page === "zabijacka" ? (
     <PageZabijacka onBack={goBack} />
   ) : page === "statistiky" ? (
-    <PageStatistiky onBack={goBack} />
+    <PageStatistiky
+      batches={batches}
+      mortalities={mortalities}
+      orders={orders}
+      expenses={expenses}
+      customers={customers}
+      halls={halls}
+      filter={dashFilter}
+      allYears={allDashYears}
+      onApplyFilter={setDashFilter}
+      onBack={goBack}
+    />
   ) : null;
 
   const navGradient = heroBatch ? batchPhaseGradient(heroBatch.phase) : undefined;

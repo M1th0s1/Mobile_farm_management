@@ -37,7 +37,7 @@ export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: 
         maxWidth: 390,
         cursor: onClick ? "pointer" : undefined,
         borderRadius: 24,
-        padding: "20px 20px 20px",
+        padding: "16px 20px 16px",
         position: "relative",
         overflow: "hidden",
         background: cardGradient,
@@ -72,7 +72,7 @@ export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: 
           alignItems: "flex-start",
           position: "relative",
           zIndex: 2,
-          marginBottom: 16,
+          marginBottom: 12,
         }}
       >
         <div>
@@ -329,7 +329,7 @@ export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: 
 
       {/* Planned slaughter – pod riadkom, s odstupom od dní */}
       {(batch.slaughterDate || batch.slaughterRange) && (
-        <div style={{ marginTop: 18, textAlign: "center", position: "relative", zIndex: 2 }}>
+        <div style={{ marginTop: 12, textAlign: "center", position: "relative", zIndex: 2 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>
             Porážka: {batch.slaughterDate || batch.slaughterRange}
           </div>
