@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import BatchCard from "./BatchCard";
 import BatchDetail, { type BatchUpdate } from "./BatchDetail";
-import SalesCard from "./SalesCard";
+import FinanceLedger from "./FinanceLedger";
 import SalesFilterSheet from "./SalesFilterSheet";
 import CreateTurnusModal from "./CreateTurnusModal";
 import { CheckIcon, CloseIcon, EuroIcon, FilterIcon, PowerIcon } from "@/components/ui/Icons";
-import { batchPhaseGradient, colors, shadows, typography } from "@/theme/tokens";
+import { colors, shadows, typography } from "@/theme/tokens";
 import { filterBatches, filterLabel, parseDate } from "@/utils/date";
 import type { Batch, Expense, MortalityRecord, Order, SalesFilter } from "@/types";
 
@@ -45,9 +45,6 @@ export default function Dashboard(props: DashboardProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const activeBatches = batches.filter(b => !b.endedAt);
-  const currentBatch = activeBatches.length
-    ? activeBatches[Math.min(activeBatchIdx, activeBatches.length - 1)]
-    : undefined;
 
   useEffect(() => {
     if (activeBatches.length > 0 && activeBatchIdx >= activeBatches.length) {
@@ -216,13 +213,8 @@ export default function Dashboard(props: DashboardProps) {
         </>
       )}
 
-      {/* Sales section */}
-      <SalesCard
-        orders={orders}
-        expenses={expenses}
-        filter={dashFilter}
-        headerGradient={currentBatch ? batchPhaseGradient(currentBatch.phase) : undefined}
-      />
+      {/* Finance info – plochý prehľad bez kartového vzhľadu */}
+      <FinanceLedger orders={orders} expenses={expenses} filter={dashFilter} />
 
       {/* Recent events */}
       <div style={{ margin: "0 16px 110px" }}>

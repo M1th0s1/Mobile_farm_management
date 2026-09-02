@@ -148,7 +148,7 @@ export const phaseGrad = {
   slaughter: "linear-gradient(135deg, #1A6953, #115342)",
 } as const;
 
-/** Gradient hlavnej turnus karty – podľa fázy (zdieľané: BatchCard, SalesCard, PageTurnusy) */
+/** Gradient hlavnej turnus karty – podľa fázy (zdieľané: BatchCard, FinanceStrip, PageTurnusy) */
 export function batchPhaseGradient(phase: Phase): string {
   if (phase === "starter") return "linear-gradient(135deg, #1F7C60 0%, #135E4B 50%, #0D3E31 100%)";
   if (phase === "growth") return "linear-gradient(135deg, #258667 0%, #166852 50%, #0F4537 100%)";

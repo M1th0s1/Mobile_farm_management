@@ -41,10 +41,29 @@ export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: 
         position: "relative",
         overflow: "hidden",
         background: cardGradient,
-        border: "1px solid rgba(255, 255, 255, 0.16)",
-        boxShadow: "none",
+        border: "1px solid rgba(255, 255, 255, 0.3)",
+        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -14px 26px -10px rgba(0,0,0,0.22)",
       }}
     >
+      {/* Glass effect – svetelné vrstvy a lesk */}
+      <div
+        style={{
+          position: "absolute", inset: 0, borderRadius: 24, pointerEvents: "none",
+          background: "linear-gradient(165deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 34%, rgba(255,255,255,0) 62%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute", left: "6%", top: "-55%", width: "88%", height: "95%", pointerEvents: "none",
+          background: "radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 34%, rgba(255,255,255,0) 66%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute", left: "-8%", right: "-8%", top: "-30%", bottom: "-30%", pointerEvents: "none",
+          background: "linear-gradient(115deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.07) 34%, rgba(255,255,255,0.015) 48%, rgba(255,255,255,0) 62%)",
+        }}
+      />
       {/* Top Header: Title, Subtitle, and Phase Indicators */}
       <div
         style={{
@@ -310,7 +329,7 @@ export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: 
 
       {/* Planned slaughter – pod riadkom, s odstupom od dní */}
       {(batch.slaughterDate || batch.slaughterRange) && (
-        <div style={{ marginTop: 18, textAlign: "center" }}>
+        <div style={{ marginTop: 18, textAlign: "center", position: "relative", zIndex: 2 }}>
           <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.75)", letterSpacing: 0.3 }}>
             Porážka: {batch.slaughterDate || batch.slaughterRange}
           </div>
