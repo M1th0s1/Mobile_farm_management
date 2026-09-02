@@ -56,6 +56,29 @@ export function financeMonthly(orders: Order[], expenses: Expense[], filter: Sal
   return [...map.entries()].sort((x, y) => (x[0] < y[0] ? -1 : 1)).map(([, v]) => v);
 }
 
+/** Tržby (odovzdané + zaplatené) po posledných N mesiacoch vrátane nulových. */
+export function revenueTrend(orders: Order[], months = 6): { label: string; val: number }[] {
+  const now = new Date();
+  const buckets: { key: string; label: string }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    buckets.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+      label: MONTHS_SHORT[d.getMonth()],
+    });
+  }
+  const vals = new Map<string, number>();
+  orders
+    .filter(o => o.status === "delivered" && o.paid !== undefined)
+    .forEach(o => {
+      const d = parseDate(o.date);
+      if (!d) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      vals.set(key, (vals.get(key) ?? 0) + (o.paid ?? 0));
+    });
+  return buckets.map(b => ({ label: b.label, val: vals.get(b.key) ?? 0 }));
+}
+
 /** Úhyn po mesiacoch (z reálnych záznamov) – posledných 8 mesiacov. */
 export function mortalityMonthly(mortalities: MortalityRecord[]): { label: string; val: number }[] {
   const map = new Map<string, { label: string; val: number }>();
