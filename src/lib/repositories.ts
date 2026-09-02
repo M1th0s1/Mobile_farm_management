@@ -3,6 +3,7 @@ import type { Batch, Customer, Expense, MortalityRecord, Order, OrderItem, Order
 
 const PHASE_LABELS: Record<string, string> = { starter: "Štartér", growth: "Rast", slaughter: "Porážka" };
 const PRODUCT_LABELS: Record<string, string> = { cele: "Celé kura", porcie: "Naporcované kura", prsia: "Len prsia" };
+const EXPENSE_CAT_CHICKS = "kurcata";
 
 // ---------- pomocné ----------
 function toAppDate(iso: string | null | undefined): string | undefined {
@@ -21,6 +22,49 @@ function daysSince(iso: string): number {
 }
 function toDisplayId(code: string, hallName?: string | null): string {
   return `Turnus: ${code} (${hallName ?? ""})`;
+}
+
+/** Vráti id automatického výdavku „Nákup kurčiat" pre turnus (ak existuje). */
+async function findChickExpenseId(batchId: string): Promise<string | null> {
+  const { data, error } = await supabase!
+    .from("expenses")
+    .select("id")
+    .eq("batch_id", batchId)
+    .eq("category", EXPENSE_CAT_CHICKS)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+/**
+ * Synchronizuje automatický výdavok „Nákup kurčiat" pre turnus.
+ * - amount > 0  → vytvorí / upraví výdavok
+ * - amount null/0 → vymaže výdavok (cena bola odstránená)
+ */
+async function syncChickExpense(batchId: string, amount: number | null, code: string, startedAtIso: string): Promise<void> {
+  const linkedId = await findChickExpenseId(batchId);
+  if (amount == null || amount <= 0) {
+    if (linkedId) {
+      const { error } = await supabase!.from("expenses").delete().eq("id", linkedId);
+      if (error) throw error;
+    }
+    return;
+  }
+  const payload = {
+    category: EXPENSE_CAT_CHICKS,
+    name: `Nákup kurčiat – ${code}`,
+    amount,
+    expense_date: startedAtIso,
+    batch_id: batchId,
+  };
+  if (linkedId) {
+    const { error } = await supabase!.from("expenses").update(payload).eq("id", linkedId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase!.from("expenses").insert(payload);
+    if (error) throw error;
+  }
 }
 
 // ---------- BATCHES ----------
@@ -45,6 +89,8 @@ export async function fetchBatches(): Promise<Batch[]> {
       feed: r.feed_type,
       count: r.current_count,
       mortality: r.mortality,
+      purchasePrice: r.purchase_price != null ? Number(r.purchase_price) : undefined,
+      initialCount: r.initial_count,
       purchaseDate: toAppDate(r.started_at),
       slaughterRange: r.slaughter_start
         ? (r.slaughter_end && r.slaughter_end !== r.slaughter_start
@@ -86,7 +132,7 @@ export async function fetchHalls(): Promise<{ name: string; capacity: number }[]
 }
 
 /** Vytvorí nový turnus (fáza starter) s automatickým kódom NN/YYYY */
-export async function createBatch(data: { count: number; startedAt: string; hallName?: string; feed?: string }): Promise<void> {
+export async function createBatch(data: { count: number; startedAt: string; hallName?: string; feed?: string; price?: number }): Promise<void> {
   const year = new Date().getFullYear().toString();
   const { data: existing, error: qErr } = await supabase!
     .from("batches")
@@ -104,7 +150,7 @@ export async function createBatch(data: { count: number; startedAt: string; hall
     hallId = hall?.id ?? null;
   }
 
-  const { error } = await supabase!.from("batches").insert({
+  const { data: created, error } = await supabase!.from("batches").insert({
     code,
     phase: "starter",
     feed_type: data.feed ?? "",
@@ -112,8 +158,14 @@ export async function createBatch(data: { count: number; startedAt: string; hall
     current_count: data.count,
     mortality: 0,
     started_at: data.startedAt,
-  });
+    purchase_price: data.price ?? null,
+  }).select("id").single();
   if (error) throw error;
+
+  // Nákup kurčiat sa automaticky započíta do výdavkov
+  if (created?.id) {
+    await syncChickExpense(created.id, data.price ?? null, code, data.startedAt);
+  }
 }
 
 /** Ukončí turnus (ended_at = dnes) */
@@ -124,7 +176,7 @@ export async function endBatch(dbId: string): Promise<void> {
 }
 
 /** Upraví turnus (počet, krmivo, plánovaná porážka) */
-export async function updateBatch(dbId: string, data: { count?: number; feed?: string; slaughterDate?: string }): Promise<void> {
+export async function updateBatch(dbId: string, data: { count?: number; feed?: string; slaughterDate?: string; price?: number | null }): Promise<void> {
   const patch: Record<string, unknown> = {};
   if (data.count !== undefined) patch.current_count = data.count;
   if (data.feed !== undefined) patch.feed_type = data.feed;
@@ -132,12 +184,31 @@ export async function updateBatch(dbId: string, data: { count?: number; feed?: s
     patch.slaughter_start = data.slaughterDate ? toIsoDate(data.slaughterDate) : null;
     patch.slaughter_end = null;
   }
+  if (data.price !== undefined) patch.purchase_price = data.price;
   const { error } = await supabase!.from("batches").update(patch).eq("id", dbId);
   if (error) throw error;
+
+  // Súlad automatického výdavku „Nákup kurčiat" so zmenenou cenou
+  if (data.price !== undefined) {
+    const { data: bRow } = await supabase!
+      .from("batches")
+      .select("code, started_at")
+      .eq("id", dbId)
+      .maybeSingle();
+    await syncChickExpense(dbId, data.price, bRow?.code ?? "", bRow?.started_at ?? new Date().toISOString().slice(0, 10));
+  }
 }
 
 /** Zmaže turnus (objednávky sa odpoja cez set null, úhyny/porážky cascade) */
 export async function deleteBatch(dbId: string): Promise<void> {
+  // Zmazanie aj automatického výdavku „Nákup kurčiat" turnusu
+  const { error: delExp } = await supabase!
+    .from("expenses")
+    .delete()
+    .eq("batch_id", dbId)
+    .eq("category", EXPENSE_CAT_CHICKS);
+  if (delExp) throw delExp;
+
   const { error } = await supabase!.from("batches").delete().eq("id", dbId);
   if (error) throw error;
 }

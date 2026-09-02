@@ -14,6 +14,8 @@ export type Batch = {
   feed: string;
   count: number;
   mortality: number;
+  purchasePrice?: number;
+  initialCount?: number;
   purchaseDate?: string;
   slaughterRange?: string;
   slaughterDate?: string;

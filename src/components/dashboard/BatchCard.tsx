@@ -1,9 +1,9 @@
 import { batchPhaseGradient, colors } from "@/theme/tokens";
 import { daysLeftLabel } from "@/utils/date";
-import { ChickenLineIcon, SkullIcon } from "@/components/ui/Icons";
+import { ChickenLineIcon, EuroIcon, SkullIcon } from "@/components/ui/Icons";
 import type { Batch } from "@/types";
 
-export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; isCenter: boolean; onClick?: () => void }) {
+export default function BatchCard({ batch, onClick }: { batch: Batch; onClick?: () => void }) {
   const phaseOrder = batch.phase === "starter" ? 0 : batch.phase === "growth" ? 1 : 2;
   const phases = [0, 1, 2];
 
@@ -21,6 +21,9 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
 
   const { title, location } = parseBatchId(batch.id);
   const slaughterLabel = daysLeftLabel(batch.slaughterDate);
+  const totalPrice = batch.purchasePrice != null ? batch.purchasePrice : null;
+  const unitPrice = totalPrice !== null && batch.initialCount ? totalPrice / batch.initialCount : null;
+  const fmtEur = (n: number) => n.toLocaleString("sk-SK", { maximumFractionDigits: 2 });
 
   // Gradient tones preserving the farm dark green / emerald brand palette
   const cardGradient = batchPhaseGradient(batch.phase);
@@ -39,12 +42,7 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
         overflow: "hidden",
         background: cardGradient,
         border: "1px solid rgba(255, 255, 255, 0.16)",
-        boxShadow: isCenter
-          ? "0 14px 32px -4px rgba(19, 94, 75, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.25)"
-          : "0 6px 18px rgba(19, 94, 75, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.15)",
-        transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, box-shadow 0.3s ease",
-        transform: isCenter ? "scale(1)" : "scale(0.93)",
-        opacity: isCenter ? 1 : 0.78,
+        boxShadow: "none",
       }}
     >
       {/* Top Header: Title, Subtitle, and Phase Indicators */}
@@ -85,29 +83,51 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
           </div>
         </div>
 
-        {/* Phase Stepper Pills */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4 }}>
-          {phases.map((idx) => {
-            const isDone = idx < phaseOrder;
-            const isCurrent = idx === phaseOrder;
-            return (
-              <div
-                key={idx}
-                style={{
-                  width: isCurrent ? 22 : 16,
-                  height: 6,
-                  borderRadius: 3,
-                  background: isDone
-                    ? "rgba(255, 255, 255, 0.85)"
-                    : isCurrent
-                    ? colors.white
-                    : "rgba(255, 255, 255, 0.25)",
-                  boxShadow: isCurrent ? "0 0 8px rgba(255, 255, 255, 0.7)" : "none",
-                  transition: "all 0.25s ease",
-                }}
-              />
-            );
-          })}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 7 }}>
+          {totalPrice !== null && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                background: "rgba(255,255,255,0.16)",
+                border: "1px solid rgba(255,255,255,0.35)",
+                borderRadius: 10,
+                padding: "3px 9px",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              }}
+            >
+              <EuroIcon color="white" size={11} strokeWidth={2.4} />
+              <span style={{ fontSize: 11, fontWeight: 900, color: colors.white, letterSpacing: -0.2 }}>
+                {fmtEur(totalPrice)} €
+              </span>
+            </div>
+          )}
+
+          {/* Phase Stepper Pills */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {phases.map((idx) => {
+              const isDone = idx < phaseOrder;
+              const isCurrent = idx === phaseOrder;
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    width: isCurrent ? 22 : 16,
+                    height: 6,
+                    borderRadius: 3,
+                    background: isDone
+                      ? "rgba(255, 255, 255, 0.85)"
+                      : isCurrent
+                      ? colors.white
+                      : "rgba(255, 255, 255, 0.25)",
+                    boxShadow: isCurrent ? "0 0 8px rgba(255, 255, 255, 0.7)" : "none",
+                    transition: "all 0.25s ease",
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -173,6 +193,24 @@ export default function BatchCard({ batch, isCenter, onClick }: { batch: Batch; 
           >
             Kŕdeľ
           </div>
+          {unitPrice !== null && (
+            <div
+              style={{
+                marginTop: 5,
+                background: "rgba(255,255,255,0.16)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 7,
+                padding: "2px 7px",
+                fontSize: 9,
+                fontWeight: 800,
+                color: colors.white,
+                letterSpacing: -0.2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {fmtEur(unitPrice)} €/ks
+            </div>
+          )}
         </div>
 
         {/* Center Match Highlight: Vek & Krmivo */}

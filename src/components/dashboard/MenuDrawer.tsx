@@ -1,6 +1,5 @@
-import { colors, gradients, shadows, typography } from "@/theme/tokens";
+import { colors, gradients, shadows } from "@/theme/tokens";
 import { ChevronRightIcon, menuIcons } from "@/components/ui/Icons";
-import type { Batch } from "@/types";
 
 const menuItems = [
   { key: "zakaznici",  label: "Zákazníci",  sub: "Správa zákazníkov a kontaktov" },
@@ -10,8 +9,8 @@ const menuItems = [
   { key: "statistiky", label: "Štatistiky", sub: "Grafy výkonnosti a trendov" },
 ];
 
-export default function MenuDrawer({ open, activeIdx, onClose, onNavigate, batches, onLogout }: {
-  open: boolean; activeIdx: number; onClose: () => void; onNavigate: (key: string) => void; batches: Batch[]; onLogout?: () => void;
+export default function MenuDrawer({ open, currentTitle, onClose, onNavigate }: {
+  open: boolean; currentTitle: string; onClose: () => void; onNavigate: (key: string) => void;
 }) {
   return (
     <>
@@ -32,7 +31,7 @@ export default function MenuDrawer({ open, activeIdx, onClose, onNavigate, batch
         </div>
         <div style={{ padding: "12px 20px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 13, fontWeight: 900, color: colors.text, letterSpacing: 0.5, textTransform: "uppercase" }}>Menu</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: colors.dark }}>{batches[activeIdx]?.id ?? ""}</span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: colors.dark }}>{currentTitle}</span>
         </div>
         <div style={{ padding: "4px 12px 8px" }}>
           {menuItems.map((item, i) => (
@@ -60,22 +59,6 @@ export default function MenuDrawer({ open, activeIdx, onClose, onNavigate, batch
             </button>
           ))}
         </div>
-        {onLogout && (
-          <div style={{ padding: "0 12px 16px" }}>
-            <button
-              onClick={onLogout}
-              style={{
-                width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                padding: "13px 10px", borderRadius: 16, cursor: "pointer",
-                border: `1.5px solid ${colors.border}`, background: colors.white,
-                fontFamily: typography.fontFamily, fontWeight: 800, fontSize: 12,
-                color: "#B91C1C", letterSpacing: 0.3,
-              }}
-            >
-              Odhlásiť sa
-            </button>
-          </div>
-        )}
       </div>
     </>
   );

@@ -422,6 +422,16 @@ export function CloseIcon({ color = "white", size = 18, strokeWidth = 2.2 }: Lin
   );
 }
 
+/** Vypnutie / Odhlásenie (power ikona) */
+export function PowerIcon({ color = "#135E4B", size = 18, strokeWidth = 2 }: LineIconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 2.8v8.4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <path d="M18.4 6.6a9 9 0 1 1-12.8 0" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Plus (Flaticon Plus) */
 export function PlusIcon({ color = "white", size = 20, strokeWidth = 2.2 }: LineIconProps) {
   return (
@@ -515,6 +525,7 @@ export const expenseIcons: Record<string, ReactElement> = {
   krmivo: <FeedIcon size={20} />,
   lek: <MedicationIcon size={20} />,
   material: <ToolIcon size={20} />,
+  kurcata: <ChickenLineIcon size={20} />,
   ine: <PackageIcon size={20} />,
 };
 

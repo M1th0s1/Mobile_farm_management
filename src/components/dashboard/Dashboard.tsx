@@ -3,12 +3,8 @@ import BatchCard from "./BatchCard";
 import BatchDetail, { type BatchUpdate } from "./BatchDetail";
 import SalesCard from "./SalesCard";
 import SalesFilterSheet from "./SalesFilterSheet";
-import UhynModal from "./UhynModal";
-import VydavokModal from "./VydavokModal";
-import BottomNav from "./BottomNav";
-import MenuDrawer from "./MenuDrawer";
 import CreateTurnusModal from "./CreateTurnusModal";
-import { CheckIcon, CloseIcon, EuroIcon, FilterIcon } from "@/components/ui/Icons";
+import { CheckIcon, CloseIcon, EuroIcon, FilterIcon, PowerIcon } from "@/components/ui/Icons";
 import { batchPhaseGradient, colors, shadows, typography } from "@/theme/tokens";
 import { filterBatches, filterLabel, parseDate } from "@/utils/date";
 import type { Batch, Expense, MortalityRecord, Order, SalesFilter } from "@/types";
@@ -18,35 +14,29 @@ type DashboardProps = {
   mortalities: MortalityRecord[];
   orders: Order[];
   expenses: Expense[];
-  activeIdx: number;
-  menuOpen: boolean;
+  userEmail?: string;
   dashFilter: SalesFilter;
   allDashYears: string[];
   showDashFilter: boolean;
-  showUhyn: boolean;
-  showVydavok: boolean;
-  onUhyn: (batchIdx: number, count: number) => void;
-  onVydavok: (e: Expense) => void;
   onCreateTurnus: (data: { count: number; startedAt: string; hallName?: string; feed?: string }) => void;
   onEndTurnus: (b: Batch) => void;
   onUpdateTurnus: (b: Batch, data: BatchUpdate) => void;
   onDeleteTurnus: (b: Batch) => void;
   onMortality: (b: Batch, count: number) => void;
-  onMenuOpenChange: (v: boolean) => void;
-  onShowUhyn: (v: boolean) => void;
-  onShowVydavok: (v: boolean) => void;
+  onHeroChange?: (idx: number) => void;
   onShowDashFilter: (v: boolean) => void;
   onApplyFilter: (f: SalesFilter) => void;
   onNavigate: (key: string) => void;
+  onLogout?: () => void;
 };
 
 export default function Dashboard(props: DashboardProps) {
   const {
-    batches, mortalities, orders, expenses, activeIdx, menuOpen, dashFilter, allDashYears,
-    showDashFilter, showUhyn, showVydavok,
-    onUhyn, onVydavok, onCreateTurnus, onEndTurnus, onUpdateTurnus, onDeleteTurnus, onMortality,
-    onMenuOpenChange,
-    onShowUhyn, onShowVydavok, onShowDashFilter, onApplyFilter, onNavigate,
+    batches, mortalities, orders, expenses, userEmail, dashFilter, allDashYears,
+    showDashFilter,
+    onCreateTurnus, onEndTurnus, onUpdateTurnus, onDeleteTurnus, onMortality,
+    onShowDashFilter, onApplyFilter, onNavigate,
+    onLogout, onHeroChange,
   } = props;
 
   const [showCreate, setShowCreate] = useState(false);
@@ -64,6 +54,11 @@ export default function Dashboard(props: DashboardProps) {
       setActiveBatchIdx(activeBatches.length - 1);
     }
   }, [activeBatches.length, activeBatchIdx]);
+
+  // Nahlas aktívny turnus (pre gradient bottom nav a titulok v menu)
+  useEffect(() => {
+    onHeroChange?.(activeBatchIdx);
+  }, [activeBatchIdx, onHeroChange]);
 
   const handleScroll = () => {
     const el = scrollRef.current;
@@ -121,17 +116,36 @@ export default function Dashboard(props: DashboardProps) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 900, color: colors.text, letterSpacing: -0.5, lineHeight: 1.1 }}>PREHĽAD FARMY</div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: colors.dark, marginTop: 2 }}>Aktualizované: dnes, 9:41</div>
+            {userEmail ? (
+              <div style={{ fontSize: 11, fontWeight: 500, color: colors.dark, marginTop: 2 }}>{userEmail}</div>
+            ) : null}
           </div>
-          <button onClick={() => onShowDashFilter(true)} style={{
-            display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 20,
-            border: `1.5px solid ${colors.border}`, background: colors.white, cursor: "pointer",
-            fontFamily: typography.fontFamily, fontSize: 11, fontWeight: 700, color: colors.dark,
-            boxShadow: shadows.filter,
-          }}>
-            <FilterIcon />
-            {filterLabel(dashFilter)}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => onShowDashFilter(true)} style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 20,
+              border: `1.5px solid ${colors.border}`, background: colors.white, cursor: "pointer",
+              fontFamily: typography.fontFamily, fontSize: 11, fontWeight: 700, color: colors.dark,
+              boxShadow: shadows.filter,
+            }}>
+              <FilterIcon />
+              {filterLabel(dashFilter)}
+            </button>
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                aria-label="Odhlásiť sa"
+                title="Odhlásiť sa"
+                style={{
+                  width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
+                  border: `1.5px solid ${colors.border}`, background: colors.white, cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: shadows.filter,
+                }}
+              >
+                <PowerIcon size={15} color={colors.dark} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Summary cards */}
@@ -181,7 +195,6 @@ export default function Dashboard(props: DashboardProps) {
               <BatchCard
                 key={b.id}
                 batch={b}
-                isCenter={b.id === currentBatch?.id}
                 onClick={() => setDetailBatch(b)}
               />
             ))}
@@ -232,16 +245,6 @@ export default function Dashboard(props: DashboardProps) {
         )}
       </div>
 
-      <MenuDrawer open={menuOpen} activeIdx={activeBatchIdx} onClose={() => onMenuOpenChange(false)} onNavigate={onNavigate} batches={batches} />
-      <BottomNav
-        menuOpen={menuOpen}
-        setMenuOpen={onMenuOpenChange}
-        onUhyn={() => onShowUhyn(true)}
-        onVydavok={() => onShowVydavok(true)}
-        gradient={currentBatch ? batchPhaseGradient(currentBatch.phase) : undefined}
-      />
-      {showUhyn && <UhynModal batches={batches} onClose={() => onShowUhyn(false)} onSubmit={onUhyn} />}
-      {showVydavok && <VydavokModal onClose={() => onShowVydavok(false)} onSubmit={onVydavok} />}
       {showDashFilter && <SalesFilterSheet filter={dashFilter} allYears={allDashYears} onApply={f => onApplyFilter(f)} onClose={() => onShowDashFilter(false)} />}
       {showCreate && <CreateTurnusModal onClose={() => setShowCreate(false)} onCreate={onCreateTurnus} />}
       {detailBatch && (

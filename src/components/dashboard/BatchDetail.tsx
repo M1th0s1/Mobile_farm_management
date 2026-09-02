@@ -4,7 +4,7 @@ import { SkullIcon } from "@/components/ui/Icons";
 import { batchPhaseGradient, colors, gradients, radius, shadows, typography } from "@/theme/tokens";
 import type { Batch } from "@/types";
 
-export type BatchUpdate = { count?: number; feed?: string; slaughterDate?: string };
+export type BatchUpdate = { count?: number; feed?: string; slaughterDate?: string; price?: number | null };
 
 function toInputDate(app?: string): string {
   if (!app) return "";
@@ -27,17 +27,21 @@ export default function BatchDetail({ batch, onClose, onUpdate, onMortality, onE
 }) {
   const [count, setCount] = useState(String(batch.count));
   const [feed, setFeed] = useState(batch.feed);
+  const [price, setPrice] = useState(batch.purchasePrice != null ? String(batch.purchasePrice) : "");
   const [slaughterDate, setSlaughterDate] = useState(() => toInputDate(batch.slaughterDate));
   const [mortality, setMortality] = useState("");
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const unit = parseFloat(price) > 0 && batch.initialCount ? parseFloat(price) / batch.initialCount : null;
+
   const save = () => {
     onUpdate(batch, {
       count: parseInt(count, 10),
       feed,
       slaughterDate: slaughterDate ? toAppDate(slaughterDate) : undefined,
+      price: price.trim() !== "" && parseFloat(price) > 0 ? parseFloat(price) : null,
     });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
@@ -99,6 +103,13 @@ export default function BatchDetail({ batch, onClose, onUpdate, onMortality, onE
         <input type="number" min="0" value={count} onChange={e => setCount(e.target.value)} style={inputStyle} />
         <div style={{ fontSize: 10, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6 }}>Krmivo</div>
         <input value={feed} onChange={e => setFeed(e.target.value)} placeholder="napr. BR1 (Štartér)" style={inputStyle} />
+
+        {/* Purchase price */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.6, flex: 1 }}>Cena za všetky (€)</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: colors.accent, background: colors.accent + "14", padding: "4px 10px", borderRadius: 20 }}>cena za ks: {unit !== null ? `${unit.toLocaleString("sk-SK", { maximumFractionDigits: 2 })} €` : "–"}</div>
+        </div>
+        <input type="number" min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="napr. 128" style={inputStyle} />
 
         {/* Úhyn quick entry */}
         <div style={{ fontSize: 11, fontWeight: 800, color: colors.text, textTransform: "uppercase", letterSpacing: 0.5, margin: "16px 0 10px" }}>Zapísať úhyn</div>

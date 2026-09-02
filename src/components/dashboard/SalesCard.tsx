@@ -20,7 +20,9 @@ export default function SalesCard({ orders, expenses, filter, headerGradient }: 
   return (
     <div style={{
       margin: "0 16px 16px",
-      borderRadius: 14,
+      width: "calc(100vw - 40px)",
+      maxWidth: 390,
+      borderRadius: 24,
       overflow: "hidden",
       border: `1px solid ${colors.border}`,
       boxShadow: shadows.card,

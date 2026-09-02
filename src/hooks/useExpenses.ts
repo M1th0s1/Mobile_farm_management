@@ -7,6 +7,7 @@ import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { Expense } from "@/types";
 
 const initialExpenses: Expense[] = [
+  { category: "kurcata", name: "Nákup kurčiat – 01/2026", amount: 146.25, date: "23.08.2026" },
   { category: "krmivo",   name: "Krmivo BR2 — 85 kg",    amount: 42.50, date: "19.08.2026" },
   { category: "lek",      name: "Vitamíny — Brovit 1L",   amount: 24.50, date: "17.08.2026" },
   { category: "material", name: "Podstielka — 50 balení", amount: 65.00, date: "15.08.2026" },

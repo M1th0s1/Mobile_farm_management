@@ -9,7 +9,7 @@ import { purchases } from "@/data/mockData";
 import { filterByPeriod, filterLabel } from "@/utils/date";
 import type { Expense, SalesFilter } from "@/types";
 
-const catLabel: Record<string, string> = { krmivo: "Krmivo", lek: "Lieky", material: "Materiál", ine: "Iné" };
+const catLabel: Record<string, string> = { krmivo: "Krmivo", lek: "Lieky", material: "Materiál", kurcata: "Kurčatá", ine: "Iné" };
 
 export default function PageNakupy({ onBack, expenses: livePurchases }: { onBack: () => void; expenses?: Expense[] }) {
   const [tab, setTab] = useState("all");
@@ -39,7 +39,7 @@ export default function PageNakupy({ onBack, expenses: livePurchases }: { onBack
 
         {/* Filter chips */}
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
-          {(["all", "krmivo", "lek", "material", "ine"] as const).map(t => (
+          {(["all", "krmivo", "lek", "material", "kurcata", "ine"] as const).map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               flex: 1, padding: "8px 4px", borderRadius: 12, border: "none", cursor: "pointer",
               fontFamily: typography.fontFamily, fontSize: 10, fontWeight: 700,

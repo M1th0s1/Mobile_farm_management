@@ -8,6 +8,7 @@ export type CreateTurnusData = {
   startedAt: string;
   hallName?: string;
   feed?: string;
+  price?: number;
 };
 
 export default function CreateTurnusModal({ onClose, onCreate }: {
@@ -15,11 +16,14 @@ export default function CreateTurnusModal({ onClose, onCreate }: {
   onCreate: (data: CreateTurnusData) => void;
 }) {
   const [count, setCount] = useState("");
+  const [price, setPrice] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [hall, setHall] = useState("");
   const [feed, setFeed] = useState("");
 
   const canSubmit = parseInt(count) > 0 && !!date;
+
+  const unit = parseInt(count, 10) > 0 && parseFloat(price) > 0 ? parseFloat(price) / parseInt(count, 10) : null;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -28,6 +32,7 @@ export default function CreateTurnusModal({ onClose, onCreate }: {
       startedAt: date,
       hallName: hall.trim() || undefined,
       feed: feed.trim() || undefined,
+      price: parseFloat(price) > 0 ? parseFloat(price) : undefined,
     });
     onClose();
   };
@@ -63,6 +68,24 @@ export default function CreateTurnusModal({ onClose, onCreate }: {
         placeholder="napr. 500"
         style={{ ...inputStyle, fontSize: 24, fontWeight: 900, textAlign: "center", letterSpacing: -0.5 }}
       />
+
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: -4, marginBottom: 14 }}>
+        <div style={{ flex: 1.2 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Cena za všetky (€)</div>
+          <input
+            type="number" min="0" step="0.01" value={price}
+            onChange={e => setPrice(e.target.value)}
+            placeholder="napr. 128"
+            style={{ ...inputStyle, marginBottom: 0, textAlign: "center", fontWeight: 800 }}
+          />
+        </div>
+        <div style={{ flex: 1, padding: "11px 10px", borderRadius: radius.lg, background: colors.accent + "12", border: `1px solid ${colors.accent + "30"}`, textAlign: "center" }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.5 }}>cena za ks</div>
+          <div style={{ fontSize: 19, fontWeight: 900, color: colors.dark, letterSpacing: -0.3, marginTop: 2 }}>
+            {unit !== null ? `${unit.toLocaleString("sk-SK", { maximumFractionDigits: 2 })} €` : "–"}
+          </div>
+        </div>
+      </div>
 
       <div style={{ fontSize: 10, fontWeight: 700, color: colors.dark, textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 8 }}>Dátum nákupu *</div>
       <input

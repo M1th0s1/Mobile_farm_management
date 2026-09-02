@@ -55,7 +55,7 @@ export function useBatches(enabled: boolean) {
     }
   };
 
-  const createBatch = (data: { count: number; startedAt: string; hallName?: string; feed?: string }) => {
+  const createBatch = (data: { count: number; startedAt: string; hallName?: string; feed?: string; price?: number }) => {
     const year = new Date().getFullYear();
     const nums = batches
       .map(b => b.id.match(/(\d+)\/\d+/)?.[1])
@@ -71,6 +71,8 @@ export function useBatches(enabled: boolean) {
       feed: data.feed ?? "",
       count: data.count,
       mortality: 0,
+      initialCount: data.count,
+      purchasePrice: data.price,
       purchaseDate: data.startedAt,
       sales: { ordered: 0, toSell: data.count },
     };
@@ -92,7 +94,7 @@ export function useBatches(enabled: boolean) {
   };
 
   /** displayId = b.id */
-  const updateBatch = (displayId: string, data: { count?: number; feed?: string; slaughterDate?: string }) => {
+  const updateBatch = (displayId: string, data: { count?: number; feed?: string; slaughterDate?: string; price?: number | null }) => {
     setBatches(prev => prev.map(b =>
       b.id === displayId
         ? {
@@ -101,6 +103,7 @@ export function useBatches(enabled: boolean) {
             feed: data.feed !== undefined ? data.feed : b.feed,
             slaughterDate: data.slaughterDate !== undefined ? (data.slaughterDate || undefined) : b.slaughterDate,
             slaughterRange: data.slaughterDate !== undefined ? (data.slaughterDate || undefined) : b.slaughterRange,
+            purchasePrice: data.price !== undefined ? (data.price ?? undefined) : b.purchasePrice,
           }
         : b
     ));

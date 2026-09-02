@@ -160,6 +160,7 @@ export const expenseCategoryMeta = {
   krmivo: { label: "Krmivo", color: "#135E4B" },
   lek: { label: "Lieky", color: "#135E4B" },
   material: { label: "Materiál", color: "#135E4B" },
+  kurcata: { label: "Kurčatá", color: "#135E4B" },
   ine: { label: "Iné", color: "#135E4B" },
 } as const;
 
